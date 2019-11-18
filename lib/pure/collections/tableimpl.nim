@@ -14,8 +14,9 @@ include hashcommon
 template rawGetDeepImpl() {.dirty.} =   # Search algo for unconditional add
   genHashImpl(key, hc)
   var h: Hash = hc and maxHash(t)
+  var perturb = hc
   while isFilled(t.data[h].hcode):
-    h = nextTry(h, maxHash(t))
+    h = nextTry(h, maxHash(t), perturb)
   result = h
 
 template rawInsertImpl() {.dirty.} =

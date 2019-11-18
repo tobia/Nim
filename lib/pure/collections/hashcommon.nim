@@ -26,8 +26,11 @@ proc isEmpty(hcode: Hash): bool {.inline.} =
 proc isFilled(hcode: Hash): bool {.inline.} =
   result = hcode != 0
 
-proc nextTry(h, maxHash: Hash): Hash {.inline.} =
-  result = (h + 1) and maxHash
+proc nextTry(h, maxHash: Hash; perturb: var Hash): Hash {.inline.} =
+  # This follows Python's implementation:
+  # https://github.com/python/cpython/blob/master/Objects/dictobject.c#L131
+  result = (5*h + 1 + perturb) and maxHash
+  perturb = perturb shr 5
 
 proc mustRehash(length, counter: int): bool {.inline.} =
   assert(length > counter)
@@ -36,6 +39,7 @@ proc mustRehash(length, counter: int): bool {.inline.} =
 template rawGetKnownHCImpl() {.dirty.} =
   if t.dataLen == 0:
     return -1
+  var perturb = hc
   var h: Hash = hc and maxHash(t) # start with real hash value
   while isFilled(t.data[h].hcode):
     # Compare hc THEN key with boolean short circuit. This makes the common case
@@ -44,7 +48,7 @@ template rawGetKnownHCImpl() {.dirty.} =
     # just a few clock cycles, generally worth it for any non-integer-like A.
     if t.data[h].hcode == hc and t.data[h].key == key:
       return h
-    h = nextTry(h, maxHash(t))
+    h = nextTry(h, maxHash(t), perturb)
   result = -1 - h # < 0 => MISSING; insert idx = -1 - result
 
 proc rawGetKnownHC[X, A](t: X, key: A, hc: Hash): int {.inline.} =

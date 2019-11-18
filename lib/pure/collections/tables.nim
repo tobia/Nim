@@ -273,8 +273,9 @@ proc enlarge[A, B](t: var Table[A, B]) =
     let eh = n[i].hcode
     if isFilled(eh):
       var j: Hash = eh and maxHash(t)
+      var perturb = eh
       while isFilled(t.data[j].hcode):
-        j = nextTry(j, maxHash(t))
+        j = nextTry(j, maxHash(t), perturb)
       when defined(js):
         rawInsert(t, t.data, n[i].key, n[i].val, eh, j)
       else:
@@ -774,13 +775,14 @@ iterator allValues*[A, B](t: Table[A, B]; key: A): B =
   ##   # 10
   ##   # 20
   ##   # 30
-  var h: Hash = genHash(key) and high(t.data)
+  var perturb = genHash(key)
+  var h: Hash = perturb and high(t.data)
   let L = len(t)
   while isFilled(t.data[h].hcode):
     if t.data[h].key == key:
       yield t.data[h].val
       assert(len(t) == L, "the length of the table changed while iterating over it")
-    h = nextTry(h, high(t.data))
+    h = nextTry(h, high(t.data), perturb)
 
 
 
@@ -1248,9 +1250,13 @@ proc enlarge[A, B](t: var OrderedTable[A, B]) =
     let eh = n[h].hcode
     if isFilled(eh):
       var j: Hash = eh and maxHash(t)
+      var perturb = eh
       while isFilled(t.data[j].hcode):
-        j = nextTry(j, maxHash(t))
-      rawInsert(t, t.data, n[h].key, n[h].val, n[h].hcode, j)
+        j = nextTry(j, maxHash(t), perturb)
+      when defined(js):
+        rawInsert(t, t.data, n[h].key, n[h].val, eh, j)
+      else:
+        rawInsert(t, t.data, move n[h].key, move n[h].val, eh, j)
     h = nxt
 
 template forAllOrderedPairs(yieldStmt: untyped) {.dirty.} =
@@ -2212,8 +2218,9 @@ type
 
 proc ctRawInsert[A](t: CountTable[A], data: var seq[tuple[key: A, val: int]],
                   key: A, val: int) =
-  var h: Hash = hash(key) and high(data)
-  while data[h].val != 0: h = nextTry(h, high(data))
+  var perturb = hash(key)
+  var h: Hash = perturb and high(data)
+  while data[h].val != 0: h = nextTry(h, high(data), perturb)
   data[h].key = key
   data[h].val = val
 
@@ -2240,10 +2247,11 @@ proc remove[A](t: var CountTable[A], key: A) =
 proc rawGet[A](t: CountTable[A], key: A): int =
   if t.data.len == 0:
     return -1
-  var h: Hash = hash(key) and high(t.data) # start with real hash value
+  var perturb = hash(key)
+  var h: Hash = perturb and high(t.data) # start with real hash value
   while t.data[h].val != 0:
     if t.data[h].key == key: return h
-    h = nextTry(h, high(t.data))
+    h = nextTry(h, high(t.data), perturb)
   result = -1 - h # < 0 => MISSING; insert idx = -1 - result
 
 template ctget(t, key, default: untyped): untyped =
