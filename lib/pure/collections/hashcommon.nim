@@ -29,7 +29,7 @@ proc isFilled(hcode: Hash): bool {.inline.} =
 proc nextTry(h, maxHash: Hash; perturb: var Hash): Hash {.inline.} =
   # This follows Python's implementation:
   # https://github.com/python/cpython/blob/master/Objects/dictobject.c#L131
-  result = (5*h + 1 + perturb) and maxHash
+  result = (5 *% h +% 1 +% perturb) and maxHash
   perturb = perturb shr 5
 
 proc mustRehash(length, counter: int): bool {.inline.} =
