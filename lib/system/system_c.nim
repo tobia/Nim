@@ -342,7 +342,7 @@ when not defined(nimscript):
     proc unsetControlCHook*()
       ## Reverts a call to setControlCHook.
 
-  proc writeStackTrace*() {.tags: [], gcsafe.}
+  proc writeStackTrace*() {.tags: [], gcsafe, raises: [].}
     ## Writes the current stack trace to ``stderr``. This is only works
     ## for debug builds. Since it's usually used for debugging, this
     ## is proclaimed to have no IO effect!
