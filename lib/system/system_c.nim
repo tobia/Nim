@@ -185,6 +185,11 @@ when not defined(booting) and defined(nimTrMacros):
     # unnecessary slow down in this case.
     swap(cast[ptr pointer](addr arr[a])[], cast[ptr pointer](addr arr[b])[])
 
+when not defined(nimscript):
+  proc writeStackTrace*() {.tags: [], gcsafe, raises: [].}
+    ## Writes the current stack trace to ``stderr``. This is only works
+    ## for debug builds. Since it's usually used for debugging, this
+    ## is proclaimed to have no IO effect!
 
 when not defined(nimscript):
   {.push stackTrace: off, profiler:off.}
