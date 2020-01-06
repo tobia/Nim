@@ -321,8 +321,6 @@ when not defined(nimscript):
       prev: PSafePoint # points to next safe point ON THE STACK
       status: int
       context: C_JmpBuf
-      hasRaiseAction: bool
-      raiseAction: proc (e: ref Exception): bool {.closure.}
     SafePoint = TSafePoint
 
 when declared(initAllocator):
@@ -342,10 +340,6 @@ when not defined(nimscript):
     proc unsetControlCHook*()
       ## Reverts a call to setControlCHook.
 
-  proc writeStackTrace*() {.tags: [], gcsafe, raises: [].}
-    ## Writes the current stack trace to ``stderr``. This is only works
-    ## for debug builds. Since it's usually used for debugging, this
-    ## is proclaimed to have no IO effect!
   when hostOS != "standalone":
     proc getStackTrace*(): string {.gcsafe.}
       ## Gets the current stack trace. This only works for debug builds.
@@ -413,7 +407,7 @@ when not defined(nimscript):
   when hasAlloc: include "system/strmantle"
 
   when hasThreadSupport:
-    when hostOS != "standalone" and not usesDestructors: include "system/channels"
+    when hostOS != "standalone": include "system/channels"
 
 when not defined(nimscript) and hasAlloc:
   when not usesDestructors:
@@ -434,8 +428,7 @@ when hostOS != "standalone" and not defined(nimscript):
   proc getCurrentExceptionMsg*(): string {.inline, benign.} =
     ## Retrieves the error message that was attached to the current
     ## exception; if there is none, `""` is returned.
-    var e = getCurrentException()
-    return if e == nil: "" else: e.msg
+    return if currException == nil: "" else: currException.msg
 
   proc setCurrentException*(exc: ref Exception) {.inline, benign.} =
     ## Sets the current exception.
