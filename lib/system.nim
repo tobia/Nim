@@ -2948,6 +2948,12 @@ when not defined(js):
 
   {.pop.}
 
+when not defined(js) and not defined(nimscript):
+  proc writeStackTrace*() {.tags: [], gcsafe, raises: [].}
+    ## Writes the current stack trace to ``stderr``. This is only works
+    ## for debug builds. Since it's usually used for debugging, this
+    ## is proclaimed to have no IO effect!
+
 when not declared(sysFatal):
   include "system/fatal"
 
