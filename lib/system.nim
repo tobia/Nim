@@ -1600,7 +1600,6 @@ when hasAlloc and hasThreadSupport:
 proc `|`*(a, b: typedesc): typedesc = discard
 
 
-include "system/memalloc"
 include "system/iterators_1"
 
 
