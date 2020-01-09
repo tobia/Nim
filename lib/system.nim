@@ -458,9 +458,14 @@ when defined(hotCodeReloading):
 else:
   {.pragma: hcrInline.}
 
+{.push profiler: off.}
+let nimvm* {.magic: "Nimvm", compileTime.}: bool = false
+  ## May be used only in `when` expression.
+  ## It is true in Nim VM context and false otherwise.
+{.pop.}
 
 include "system/arithmetics"
-
+include "system/comparisons"
 
 const
   appType* {.magic: "AppType"}: string = ""
@@ -1023,12 +1028,6 @@ const
   # emit this flag
   # for string literals, it allows for some optimizations.
 
-{.push profiler: off.}
-let nimvm* {.magic: "Nimvm", compileTime.}: bool = false
-  ## May be used only in `when` expression.
-  ## It is true in Nim VM context and false otherwise.
-{.pop.}
-
 proc compileOption*(option: string): bool {.
   magic: "CompileOption", noSideEffect.}
   ## Can be used to determine an `on|off` compile-time option. Example:
@@ -1440,27 +1439,11 @@ const
     ## in the `math module <math.html>`_ for checking for NaN.
 
 
-include "system/memalloc"
-
-
 proc `|`*(a, b: typedesc): typedesc = discard
 
-include "system/iterators_1"
 
 
 {.push stackTrace: off.}
-
-proc min*[T](x: openArray[T]): T =
-  ## The minimum value of `x`. ``T`` needs to have a ``<`` operator.
-  result = x[0]
-  for i in 1..high(x):
-    if x[i] < result: result = x[i]
-
-proc max*[T](x: openArray[T]): T =
-  ## The maximum value of `x`. ``T`` needs to have a ``<`` operator.
-  result = x[0]
-  for i in 1..high(x):
-    if result < x[i]: result = x[i]
 
 proc abs*(x: float64): float64 {.noSideEffect, inline.} =
   if x < 0.0: -x else: x
@@ -1481,19 +1464,11 @@ proc max*[T: not SomeFloat](x, y: T): T {.inline.} =
 
 {.pop.} # stackTrace: off
 
+include "system/memalloc"
+include "system/iterators_1"
 
 proc high*(T: typedesc[SomeFloat]): T = Inf
 proc low*(T: typedesc[SomeFloat]): T = NegInf
-
-proc clamp*[T](x, a, b: T): T =
-  ## Limits the value ``x`` within the interval [a, b].
-  ##
-  ## .. code-block:: Nim
-  ##   assert((1.4).clamp(0.0, 1.0) == 1.0)
-  ##   assert((0.5).clamp(0.0, 1.0) == 0.5)
-  if x < a: return a
-  if x > b: return b
-  return x
 
 proc len*[U: Ordinal; V: Ordinal](x: HSlice[U, V]): int {.noSideEffect, inline.} =
   ## Length of ordinal slice. When x.b < x.a returns zero length.
@@ -1522,21 +1497,6 @@ proc isNil*[T: proc](x: T): bool {.noSideEffect, magic: "IsNil".}
   ## Fast check whether `x` is nil. This is sometimes more efficient than
   ## ``== nil``.
 
-proc `==`*[I, T](x, y: array[I, T]): bool =
-  for f in low(x)..high(x):
-    if x[f] != y[f]:
-      return
-  result = true
-
-proc `==`*[T](x, y: openArray[T]): bool =
-  if x.len != y.len:
-    return false
-
-  for f in low(x)..high(x):
-    if x[f] != y[f]:
-      return false
-
-  result = true
 
 proc `@`*[T](a: openArray[T]): seq[T] =
   ## Turns an *openArray* into a sequence.
@@ -1589,43 +1549,6 @@ proc `&`*[T](x: T, y: seq[T]): seq[T] {.noSideEffect.} =
   for i in 0..y.len-1:
     result[i+1] = y[i]
 
-proc `==`*[T](x, y: seq[T]): bool {.noSideEffect.} =
-  ## Generic equals operator for sequences: relies on a equals operator for
-  ## the element type `T`.
-  when nimvm:
-    when not defined(nimNoNil):
-      if x.isNil and y.isNil:
-        return true
-    else:
-      if x.len == 0 and y.len == 0:
-        return true
-  else:
-    when not defined(JS):
-      proc seqToPtr[T](x: seq[T]): pointer {.inline, noSideEffect.} =
-        when defined(nimSeqsV2):
-          result = cast[NimSeqV2[T]](x).p
-        else:
-          result = cast[pointer](x)
-
-      if seqToPtr(x) == seqToPtr(y):
-        return true
-    else:
-      var sameObject = false
-      asm """`sameObject` = `x` === `y`"""
-      if sameObject: return true
-
-  when not defined(nimNoNil):
-    if x.isNil or y.isNil:
-      return false
-
-  if x.len != y.len:
-    return false
-
-  for i in 0..x.len-1:
-    if x[i] != y[i]:
-      return false
-
-  return true
 
 proc astToStr*[T](x: T): string {.magic: "AstToStr", noSideEffect.}
   ## Converts the AST of `x` into a string representation. This is very useful
