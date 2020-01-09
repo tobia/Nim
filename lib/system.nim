@@ -1279,6 +1279,11 @@ proc repr*[T](x: T): string {.magic: "Repr", noSideEffect.}
   ##  echo repr(s) # => 0x1055eb050[0x1055ec050"test2", 0x1055ec078"test2"]
   ##  echo repr(i) # => 0x1055ed050[1, 2, 3, 4, 5]
 
+type
+  BiggestFloat* = float64
+    ## is an alias for the biggest floating point type the Nim
+    ## compiler supports. Currently this is ``float64``, but it is
+    ## platform-dependent in general.
 
 when defined(JS):
   type BiggestUInt* = uint32
